@@ -1,5 +1,5 @@
-import { generateText, type ModelMessage } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { generateText, type ModelMessage } from "ai";
 import { extractMessageText } from "./tokenEstimator.ts";
 
 const SUMMARIZATION_PROMPT = `You are a conversation summarizer. Your task is to create a concise summary of the conversation so far that preserves:
@@ -18,13 +18,13 @@ Conversation to summarize:
  * Format messages array as readable text for summarization
  */
 function messagesToText(messages: ModelMessage[]): string {
-  return messages
-    .map((msg) => {
-      const role = msg.role.toUpperCase();
-      const content = extractMessageText(msg);
-      return `[${role}]: ${content}`;
-    })
-    .join("\n\n");
+	return messages
+		.map((msg) => {
+			const role = msg.role.toUpperCase();
+			const content = extractMessageText(msg);
+			return `[${role}]: ${content}`;
+		})
+		.join("\n\n");
 }
 
 /**
@@ -38,35 +38,35 @@ function messagesToText(messages: ModelMessage[]): string {
  * The system prompt should be prepended by the caller.
  */
 export async function compactConversation(
-  messages: ModelMessage[],
-  model: string = "gpt-5-mini",
+	messages: ModelMessage[],
+	model: string = "gpt-5-mini",
 ): Promise<ModelMessage[]> {
-  // Filter out system messages - they're handled separately
-  const conversationMessages = messages.filter((m) => m.role !== "system");
+	// Filter out system messages - they're handled separately
+	const conversationMessages = messages.filter((m) => m.role !== "system");
 
-  if (conversationMessages.length === 0) {
-    return [];
-  }
+	if (conversationMessages.length === 0) {
+		return [];
+	}
 
-  const conversationText = messagesToText(conversationMessages);
+	const conversationText = messagesToText(conversationMessages);
 
-  const { text: summary } = await generateText({
-    model: openai(model),
-    prompt: SUMMARIZATION_PROMPT + conversationText,
-  });
+	const { text: summary } = await generateText({
+		model: openai(model),
+		prompt: SUMMARIZATION_PROMPT + conversationText,
+	});
 
-  // Create compacted messages
-  const compactedMessages: ModelMessage[] = [
-    {
-      role: "user",
-      content: `[CONVERSATION SUMMARY]\nThe following is a summary of our conversation so far:\n\n${summary}\n\nPlease continue from where we left off.`,
-    },
-    {
-      role: "assistant",
-      content:
-        "I understand. I've reviewed the summary of our conversation and I'm ready to continue. How can I help you next?",
-    },
-  ];
+	// Create compacted messages
+	const compactedMessages: ModelMessage[] = [
+		{
+			role: "user",
+			content: `[CONVERSATION SUMMARY]\nThe following is a summary of our conversation so far:\n\n${summary}\n\nPlease continue from where we left off.`,
+		},
+		{
+			role: "assistant",
+			content:
+				"I understand. I've reviewed the summary of our conversation and I'm ready to continue. How can I help you next?",
+		},
+	];
 
-  return compactedMessages;
+	return compactedMessages;
 }

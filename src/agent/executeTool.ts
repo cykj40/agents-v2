@@ -18,7 +18,12 @@ export async function executeTool(
 		return `Provider tool ${name} - executed by model provider`;
 	}
 
-	const result = await execute(args as Record<string, unknown>, {
+	const result = await (
+		execute as unknown as (
+			args: Record<string, unknown>,
+			opts: { toolCallId: string; messages: unknown[] },
+		) => Promise<unknown>
+	)(args, {
 		toolCallId: "",
 		messages: [],
 	});

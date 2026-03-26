@@ -1,50 +1,50 @@
-import { generateText, stepCountIs, type ModelMessage, type ToolSet } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { generateText, type ModelMessage, stepCountIs, type ToolSet } from "ai";
 
 import { SYSTEM_PROMPT } from "../src/agent/system/prompt.ts";
 import type {
-  EvalData,
-  SingleTurnResult,
-  MultiTurnEvalData,
-  MultiTurnResult,
+	EvalData,
+	MultiTurnEvalData,
+	MultiTurnResult,
+	SingleTurnResult,
 } from "./types.ts";
 import { buildMessages, buildMockedTools } from "./utils.ts";
 
 export async function singleTurnExecutor(
-  data: EvalData,
-  availableTools: ToolSet,
+	data: EvalData,
+	availableTools: ToolSet,
 ): Promise<SingleTurnResult> {
-  const messages = buildMessages(data);
+	const messages = buildMessages(data);
 
-  // Filter to only tools specified in data
-  const tools: ToolSet = {};
-  for (const toolName of data.tools) {
-    if (availableTools[toolName]) {
-      tools[toolName] = availableTools[toolName];
-    }
-  }
+	// Filter to only tools specified in data
+	const tools: ToolSet = {};
+	for (const toolName of data.tools) {
+		if (availableTools[toolName]) {
+			tools[toolName] = availableTools[toolName];
+		}
+	}
 
-  const result = await generateText({
-    model: openai(data.config?.model ?? "gpt-5-mini"),
-    messages,
-    tools,
-    stopWhen: stepCountIs(1), // Single step - just get tool selection
-    temperature: data.config?.temperature ?? undefined,
-  });
+	const result = await generateText({
+		model: openai(data.config?.model ?? "gpt-5-mini"),
+		messages,
+		tools,
+		stopWhen: stepCountIs(1), // Single step - just get tool selection
+		temperature: data.config?.temperature ?? undefined,
+	});
 
-  // Extract tool calls from the result
-  const toolCalls = (result.toolCalls ?? []).map((tc) => ({
-    toolName: tc.toolName,
-    args: "args" in tc ? tc.args : {},
-  }));
+	// Extract tool calls from the result
+	const toolCalls = (result.toolCalls ?? []).map((tc) => ({
+		toolName: tc.toolName,
+		args: "args" in tc ? tc.args : {},
+	}));
 
-  const toolNames = toolCalls.map((tc) => tc.toolName);
+	const toolNames = toolCalls.map((tc) => tc.toolName);
 
-  return {
-    toolCalls,
-    toolNames,
-    selectedAny: toolNames.length > 0,
-  };
+	return {
+		toolCalls,
+		toolNames,
+		selectedAny: toolNames.length > 0,
+	};
 }
 
 /**
@@ -52,53 +52,61 @@ export async function singleTurnExecutor(
  * Runs a complete agent loop with tools returning fixed values.
  */
 export async function multiTurnWithMocks(
-  data: MultiTurnEvalData,
+	data: MultiTurnEvalData,
 ): Promise<MultiTurnResult> {
-  const tools = buildMockedTools(data.mockTools);
+	const tools = buildMockedTools(data.mockTools);
 
-  // Build messages from either prompt or pre-filled history
-  const messages: ModelMessage[] = data.messages ?? [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: data.prompt! },
-  ];
+	// Build messages from either prompt or pre-filled history
+	const messages: ModelMessage[] = (() => {
+		if (data.messages) {
+			return data.messages;
+		}
+		if (data.prompt == null) {
+			throw new Error("MultiTurnEvalData: provide either messages or prompt");
+		}
+		return [
+			{ role: "system", content: SYSTEM_PROMPT },
+			{ role: "user", content: data.prompt },
+		];
+	})();
 
-  const result = await generateText({
-    model: openai(data.config?.model ?? "gpt-5-mini"),
-    messages,
-    tools,
-    stopWhen: stepCountIs(data.config?.maxSteps ?? 20),
-  });
+	const result = await generateText({
+		model: openai(data.config?.model ?? "gpt-5-mini"),
+		messages,
+		tools,
+		stopWhen: stepCountIs(data.config?.maxSteps ?? 20),
+	});
 
-  // Extract all tool calls in order from steps
-  const allToolCalls: string[] = [];
-  const steps = result.steps.map((step) => {
-    const stepToolCalls = (step.toolCalls ?? []).map((tc) => {
-      allToolCalls.push(tc.toolName);
-      return {
-        toolName: tc.toolName,
-        args: "args" in tc ? tc.args : {},
-      };
-    });
+	// Extract all tool calls in order from steps
+	const allToolCalls: string[] = [];
+	const steps = result.steps.map((step) => {
+		const stepToolCalls = (step.toolCalls ?? []).map((tc) => {
+			allToolCalls.push(tc.toolName);
+			return {
+				toolName: tc.toolName,
+				args: "args" in tc ? tc.args : {},
+			};
+		});
 
-    const stepToolResults = (step.toolResults ?? []).map((tr) => ({
-      toolName: tr.toolName,
-      result: "result" in tr ? tr.result : tr,
-    }));
+		const stepToolResults = (step.toolResults ?? []).map((tr) => ({
+			toolName: tr.toolName,
+			result: "result" in tr ? tr.result : tr,
+		}));
 
-    return {
-      toolCalls: stepToolCalls.length > 0 ? stepToolCalls : undefined,
-      toolResults: stepToolResults.length > 0 ? stepToolResults : undefined,
-      text: step.text || undefined,
-    };
-  });
+		return {
+			toolCalls: stepToolCalls.length > 0 ? stepToolCalls : undefined,
+			toolResults: stepToolResults.length > 0 ? stepToolResults : undefined,
+			text: step.text || undefined,
+		};
+	});
 
-  // Extract unique tools used
-  const toolsUsed = [...new Set(allToolCalls)];
+	// Extract unique tools used
+	const toolsUsed = [...new Set(allToolCalls)];
 
-  return {
-    text: result.text,
-    steps,
-    toolsUsed,
-    toolCallOrder: allToolCalls,
-  };
+	return {
+		text: result.text,
+		steps,
+		toolsUsed,
+		toolCallOrder: allToolCalls,
+	};
 }
