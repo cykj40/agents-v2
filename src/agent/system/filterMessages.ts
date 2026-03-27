@@ -25,7 +25,7 @@ export const filterCompatibleMessages = (
 					if (typeof part === "string" && part.trim()) return true;
 					if (typeof part === "object" && part !== null && "text" in part) {
 						const textPart = part as { text?: string };
-						return textPart.text && textPart.text.trim();
+						return textPart.text?.trim();
 					}
 					return false;
 				});

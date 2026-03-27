@@ -1,5 +1,4 @@
 import { Box, Text } from "ink";
-import React from "react";
 
 export interface Message {
 	role: "user" | "assistant";
@@ -13,8 +12,8 @@ interface MessageListProps {
 export function MessageList({ messages }: MessageListProps) {
 	return (
 		<Box flexDirection="column" gap={1}>
-			{messages.map((message, index) => (
-				<Box key={index} flexDirection="column">
+			{messages.map((message) => (
+				<Box key={`${message.role}:${message.content}`} flexDirection="column">
 					<Text color={message.role === "user" ? "blue" : "green"} bold>
 						{message.role === "user" ? "› You" : "› Assistant"}
 					</Text>

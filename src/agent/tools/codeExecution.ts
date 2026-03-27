@@ -1,7 +1,7 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { tool } from "ai";
-import fs from "fs/promises";
-import os from "os";
-import path from "path";
 import shell from "shelljs";
 import { z } from "zod";
 

@@ -1,5 +1,5 @@
 import { Box, Text, useInput } from "ink";
-import React, { useState } from "react";
+import { useState } from "react";
 
 interface ToolApprovalProps {
 	toolName: string;
@@ -42,7 +42,7 @@ function getArgsSummary(args: unknown): string {
 			const value = obj[key] as string;
 			// Truncate long values
 			if (value.length > 50) {
-				return value.slice(0, 50) + "...";
+				return `${value.slice(0, 50)}...`;
 			}
 			return value;
 		}
@@ -53,7 +53,7 @@ function getArgsSummary(args: unknown): string {
 	if (keys.length > 0 && typeof obj[keys[0]] === "string") {
 		const value = obj[keys[0]] as string;
 		if (value.length > 50) {
-			return value.slice(0, 50) + "...";
+			return `${value.slice(0, 50)}...`;
 		}
 		return value;
 	}
@@ -66,7 +66,7 @@ export function ToolApproval({ toolName, args, onResolve }: ToolApprovalProps) {
 	const options = ["Yes", "No"];
 
 	useInput(
-		(input, key) => {
+		(_input, key) => {
 			if (key.upArrow || key.downArrow) {
 				setSelectedIndex((prev) => (prev === 0 ? 1 : 0));
 				return;
