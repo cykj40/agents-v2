@@ -11,10 +11,17 @@ export const readFile = tool({
 		"Read the contents of a file at the specified path. Use this to examine file contents.",
 	inputSchema: z.object({
 		path: z.string().describe("The path to the file to read"),
+		encoding: z
+			.string()
+			.optional()
+			.describe("Text encoding (e.g. utf-8); defaults to utf-8"),
 	}),
-	execute: async ({ path: filePath }: { path: string }) => {
+	execute: async ({ path: filePath, encoding }) => {
 		try {
-			const content = await fs.readFile(filePath, "utf-8");
+			const content = await fs.readFile(
+				filePath,
+				(encoding ?? "utf-8") as BufferEncoding,
+			);
 			return content;
 		} catch (error) {
 			const err = error as NodeJS.ErrnoException;
